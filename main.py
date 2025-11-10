@@ -4,6 +4,7 @@ import json
 import os
 import importlib.util
 import shutil
+import pydoc
 
 COURSE_CODES_SCRIPT_NAME = 'get_codes.py' # First, implement get_codes.py for a school
 COURSE_CODES_SCRIPT_OUTPUT_NAME = 'codes.json' # Next, run get_codes.py to produce this
@@ -81,6 +82,16 @@ def cleanup():
         shutil.rmtree(os.path.join(school, '__pycache__'), ignore_errors=True)
     print("Cleaned up __pycache__ directories.")
 
+def trie_to_list(school_name: str):
+    path = os.path.join(school_name, COURSE_CODES_TRIE_OUTPUT_NAME + '.gz')
+    if not os.path.exists(path):
+        print(f"No {COURSE_CODES_TRIE_OUTPUT_NAME + '.gz'} found for {school_name}. Please run/implement {COURSE_CODES_SCRIPT_NAME} and create_trie first.")
+        return
+    with gzip.open(path, 'rt', encoding='utf-8') as f:
+        trie_dict = json.load(f)
+    trie = Trie.from_dict(trie_dict)
+    codes = trie.search()
+    return codes
 
 def create_school(school_name: str):
     os.makedirs(school_name, exist_ok=True)
@@ -154,6 +165,7 @@ def main():
 
     subparsers.add_parser('list-schools', help='List all schools with course code data.')
     subparsers.add_parser('cleanup', help='Clean up __pycache__ directories.')
+    subparsers.add_parser('trie-to-list', help='Convert trie to list for a school.').add_argument('school_name', type=str, help='Name of the school to convert trie to list for.')
 
     create_school_parser = subparsers.add_parser('create-school', help='Create a new school.')
     create_school_parser.add_argument('school_name', type=str, help='Name of the school to create.')
@@ -176,6 +188,11 @@ def main():
         print(json.dumps(schools, indent=4))
     elif args.command == 'cleanup':
         cleanup()
+    elif args.command == 'trie-to-list':
+        codes = trie_to_list(args.school_name)
+        if codes is not None:
+            output = "\n".join(codes)
+            pydoc.pager(output)
     else:
         parser.print_help()
                         
