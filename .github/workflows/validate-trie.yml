@@ -34,11 +34,17 @@ jobs:
             base=${{ github.event.before }}
             head=${{ github.sha }}
           fi
-          # ensure commits are available
           git fetch --no-tags --prune origin "$base" || true
           git fetch --no-tags --prune origin "$head" || true
-          files=$(git diff --name-only "$base" "$head" || true)
-          dirs=$(printf "%s\n" $files | grep 'codes_trie.json.gz' || true | xargs -n1 dirname | sort -u || true)
+
+          # get changed files (one per line) and safely derive directories that contain codes_trie.json.gz
+          dirs=$(git diff --name-only "$base" "$head" | \
+            while IFS= read -r file; do
+              case "$file" in
+                *codes_trie.json.gz) dirname "$file";;
+              esac
+            done | sort -u || true)
+
           echo "dirs<<EOF" >> $GITHUB_OUTPUT
           printf "%s\n" "$dirs" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
