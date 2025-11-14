@@ -1,0 +1,55 @@
+name: Validate changed tries
+
+on:
+  push:
+    paths:
+      - "**/codes_trie.json.gz"
+  pull_request:
+    paths:
+      - "**/codes_trie.json.gz"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Get changed directories with codes_trie.json.gz
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base=${{ github.event.pull_request.base.sha }}
+            head=${{ github.event.pull_request.head.sha }}
+          else
+            base=${{ github.event.before }}
+            head=${{ github.sha }}
+          fi
+          # ensure commits are available
+          git fetch --no-tags --prune origin "$base" || true
+          git fetch --no-tags --prune origin "$head" || true
+          files=$(git diff --name-only "$base" "$head" || true)
+          dirs=$(printf "%s\n" $files | grep 'codes_trie.json.gz' || true | xargs -n1 dirname | sort -u || true)
+          echo "dirs<<EOF" >> $GITHUB_OUTPUT
+          printf "%s\n" "$dirs" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Validate changed tries
+        if: steps.changed.outputs.dirs != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            echo "Validating: $dir"
+            python3 main.py validate-trie "$dir"
+          done <<< "${{ steps.changed.outputs.dirs }}"

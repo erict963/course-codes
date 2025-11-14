@@ -5,6 +5,10 @@ import os
 import importlib.util
 import shutil
 import pydoc
+import re
+
+COURSE_CODE_REGEX = r'^[A-Z0-9& \-]+$'
+assert '$' not in COURSE_CODE_REGEX[1:-1], "Regex cannot contain $ as it is used as end marker in trie"
 
 COURSE_CODES_SCRIPT_NAME = 'get_codes.py' # First, implement get_codes.py for a school
 COURSE_CODES_SCRIPT_OUTPUT_NAME = 'codes.json' # Next, run get_codes.py to produce this
@@ -155,6 +159,28 @@ def create_trie(school_name: str):
     assert sorted(reconstructed) == sorted(codes), "Reconstructed codes do not match original!"
 
 
+def validate_trie(school_name: str):
+    path = os.path.join(school_name, COURSE_CODES_TRIE_OUTPUT_NAME + '.gz')
+    if not os.path.exists(path):
+        print(f"No {COURSE_CODES_TRIE_OUTPUT_NAME + '.gz'} found for {school_name}. Please run/implement {COURSE_CODES_SCRIPT_NAME} and create_trie first.")
+        return
+    with gzip.open(path, 'rt', encoding='utf-8') as f:
+        trie_dict = json.load(f)
+    trie = Trie.from_dict(trie_dict)
+    codes = trie.search()
+
+    non_matching = [code for code in codes if not re.match(COURSE_CODE_REGEX, code)]
+    if non_matching:
+        print(f"Codes not matching regex {COURSE_CODE_REGEX}:")
+        for code in non_matching:
+            print(f"  {code}")
+        raise ValueError(f"Found {len(non_matching)} codes not matching regex {COURSE_CODE_REGEX}.")
+    
+    print(f"All {len(codes)} codes match the regex {COURSE_CODE_REGEX}.")
+    # print(f"Unique characters in codes for {school_name}: {sorted(set(''.join(codes)))}")
+    # print([x for x in codes if '-' in x])
+
+
 # python main.py list-schools 
 # python main.py create-school "New School"
 # python main.py create-trie "New School"
@@ -176,6 +202,9 @@ def main():
     create_trie_parser = subparsers.add_parser('create-trie', help='Create trie for a school.')
     create_trie_parser.add_argument('school_name', type=str, help='Name of the school to create trie for.')
 
+    validate_trie_parser = subparsers.add_parser('validate-trie', help='Validate trie for a school.')
+    validate_trie_parser.add_argument('school_name', type=str, help='Name of the school to validate trie for.')
+
     args = parser.parse_args()
     if args.command == 'create-school':
         create_school(args.school_name)
@@ -193,6 +222,8 @@ def main():
         if codes is not None:
             output = "\n".join(codes)
             pydoc.pager(output)
+    elif args.command == 'validate-trie':
+        validate_trie(args.school_name)
     else:
         parser.print_help()
                         
