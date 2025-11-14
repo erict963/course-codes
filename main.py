@@ -6,7 +6,7 @@ import shutil
 import pydoc
 import re
 
-COURSE_CODE_REGEX = r'^[A-Z0-9& \-]+$'
+COURSE_CODE_REGEX = r'^[A-Z0-9& :\-]+$' # TODO: have some mechanism to detect if this changes 
 assert '$' not in COURSE_CODE_REGEX[1:-1], "Regex cannot contain $ as it is used as end marker in trie"
 
 COURSE_CODES_SCRIPT_NAME = 'get_codes.py' # First, implement get_codes.py for a school
@@ -119,8 +119,6 @@ def create_trie(school_name: str):
 
     trie_dict = trie.to_dict()
 
-    # TODO: make regex requirement map
-
     with open(os.path.join(school_name, COURSE_CODES_TRIE_OUTPUT_NAME), 'w', encoding='utf-8') as f:
         json.dump(trie_dict, f)
 
@@ -147,7 +145,11 @@ def create_trie(school_name: str):
     reconstructed = reconstructed_trie.search()
     print(f"\nVerification: {len(reconstructed)} codes reconstructed")
     assert sorted(reconstructed) == sorted(codes), "Reconstructed codes do not match original!"
-
+    # # find which reconstructed codes are not in original
+    # from collections import Counter
+    # original_counter = Counter(codes)
+    # print([x for x in reconstructed if original_counter[x] >1])
+    
 
 def validate_trie(school_name: str):
     path = os.path.join(school_name, COURSE_CODES_TRIE_OUTPUT_NAME + '.gz')
