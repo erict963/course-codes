@@ -2,7 +2,6 @@ import argparse
 import gzip
 import json
 import os
-import importlib.util
 import shutil
 import pydoc
 import re
@@ -103,16 +102,7 @@ def create_school(school_name: str):
         f.write(f'# Placeholder for {COURSE_CODES_SCRIPT_NAME}\n')
     print(f"Created directory and placeholder for {school_name}")
 
-def get_codes(school_name: str):
-    path = os.path.join(school_name, COURSE_CODES_SCRIPT_NAME)
-    if not os.path.exists(path):
-        print(f"No {COURSE_CODES_SCRIPT_NAME} found for {school_name}. Please implement it first.")
-        return
-    
-    spec = importlib.util.spec_from_file_location("get_codes_module", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    
+
 def create_trie(school_name: str):
     path = os.path.join(school_name, COURSE_CODES_SCRIPT_OUTPUT_NAME)
     if not os.path.exists(path):
@@ -176,6 +166,10 @@ def validate_trie(school_name: str):
             print(f"  {code}")
         raise ValueError(f"Found {len(non_matching)} codes not matching regex {COURSE_CODE_REGEX}.")
     
+    # validate no duplicates
+    if len(codes) != len(set(codes)):
+        raise ValueError(f"Found duplicates in codes for {school_name}.")
+    
     print(f"All {len(codes)} codes match the regex {COURSE_CODE_REGEX}.")
     # print(f"Unique characters in codes for {school_name}: {sorted(set(''.join(codes)))}")
     # print([x for x in codes if '-' in x])
@@ -196,9 +190,6 @@ def main():
     create_school_parser = subparsers.add_parser('create-school', help='Create a new school.')
     create_school_parser.add_argument('school_name', type=str, help='Name of the school to create.')
 
-    get_codes_parser = subparsers.add_parser('get-codes', help='Get codes for a school.')
-    get_codes_parser.add_argument('school_name', type=str, help='Name of the school to get codes for.')
-
     create_trie_parser = subparsers.add_parser('create-trie', help='Create trie for a school.')
     create_trie_parser.add_argument('school_name', type=str, help='Name of the school to create trie for.')
 
@@ -208,10 +199,10 @@ def main():
     args = parser.parse_args()
     if args.command == 'create-school':
         create_school(args.school_name)
-    elif args.command == 'get-codes':
-        get_codes(args.school_name)
     elif args.command == 'create-trie':
         create_trie(args.school_name)
+    elif args.command == 'validate-trie':
+        validate_trie(args.school_name)
     elif args.command == 'list-schools':
         schools = list_schools()
         print(json.dumps(schools, indent=4))
@@ -222,8 +213,6 @@ def main():
         if codes is not None:
             output = "\n".join(codes)
             pydoc.pager(output)
-    elif args.command == 'validate-trie':
-        validate_trie(args.school_name)
     else:
         parser.print_help()
                         
