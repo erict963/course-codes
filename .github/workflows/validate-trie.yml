@@ -1,14 +1,8 @@
-name: Validate changed tries
+name: Validate all tries
 
 on:
   push:
-    paths:
-      - "**/codes_trie.json.gz"
-      - "course_code_regex.txt"
   pull_request:
-    paths:
-      - "**/codes_trie.json.gz"
-      - "course_code_regex.txt"
 
 jobs:
   validate:
@@ -16,33 +10,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
-      - name: Get directories to validate
-        id: changed
+      - name: Get all schools
+        id: schools
         shell: bash
         run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base=${{ github.event.pull_request.base.sha }}
-            head=${{ github.event.pull_request.head.sha }}
-          else
-            base=${{ github.event.before }}
-            head=${{ github.sha }}
-          fi
-          git fetch --no-tags --prune origin "$base" || true
-          git fetch --no-tags --prune origin "$head" || true
-
-          git diff --name-only "$base" "$head" > changed_files.txt
-
-          if grep -Fx 'course_code_regex.txt' changed_files.txt >/dev/null; then
-            dirs=$(python3 - <<'PY'
+          dirs=$(python3 - <<'PY'
 import os
 schools = [
     d for d in os.listdir('.')
@@ -53,18 +31,12 @@ schools = [
 print("\n".join(sorted(schools)))
 PY
 )
-          else
-            dirs=$(grep 'codes_trie.json.gz' changed_files.txt | while IFS= read -r file; do
-              dirname "$file"
-            done | sort -u || true)
-          fi
-
           echo "dirs<<EOF" >> $GITHUB_OUTPUT
           printf "%s\n" "$dirs" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Validate changed tries
-        if: steps.changed.outputs.dirs != ''
+      - name: Validate all tries
+        if: steps.schools.outputs.dirs != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -72,4 +44,4 @@ PY
             [ -z "$dir" ] && continue
             echo "Validating: $dir"
             python3 main.py validate-trie "$dir"
-          done <<< "${{ steps.changed.outputs.dirs }}"
+          done <<< "${{ steps.schools.outputs.dirs }}"
