@@ -6,7 +6,8 @@ import shutil
 import pydoc
 import re
 
-COURSE_CODE_REGEX = r'^[A-Z0-9& :\-]+$' # TODO: have some mechanism to detect if this changes 
+with open('course_code_regex.txt', 'r', encoding='utf-8') as f:
+    COURSE_CODE_REGEX = f.read().strip()
 assert '$' not in COURSE_CODE_REGEX[1:-1], "Regex cannot contain $ as it is used as end marker in trie"
 
 COURSE_CODES_SCRIPT_NAME = 'get_codes.py' # First, implement get_codes.py for a school

@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - "**/codes_trie.json.gz"
+      - "course_code_regex.txt"
   pull_request:
     paths:
       - "**/codes_trie.json.gz"
+      - "course_code_regex.txt"
 
 jobs:
   validate:
@@ -22,7 +24,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Get changed directories with codes_trie.json.gz
+      - name: Get directories to validate
         id: changed
         shell: bash
         run: |
@@ -37,13 +39,25 @@ jobs:
           git fetch --no-tags --prune origin "$base" || true
           git fetch --no-tags --prune origin "$head" || true
 
-          # get changed files (one per line) and safely derive directories that contain codes_trie.json.gz
-          dirs=$(git diff --name-only "$base" "$head" | \
-            while IFS= read -r file; do
-              case "$file" in
-                *codes_trie.json.gz) dirname "$file";;
-              esac
+          git diff --name-only "$base" "$head" > changed_files.txt
+
+          if grep -Fx 'course_code_regex.txt' changed_files.txt >/dev/null; then
+            dirs=$(python3 - <<'PY'
+import os
+schools = [
+    d for d in os.listdir('.')
+    if os.path.isdir(d)
+    and not d.startswith('.')
+    and d not in ('__pycache__', 'env')
+]
+print("\n".join(sorted(schools)))
+PY
+)
+          else
+            dirs=$(grep 'codes_trie.json.gz' changed_files.txt | while IFS= read -r file; do
+              dirname "$file"
             done | sort -u || true)
+          fi
 
           echo "dirs<<EOF" >> $GITHUB_OUTPUT
           printf "%s\n" "$dirs" >> $GITHUB_OUTPUT
