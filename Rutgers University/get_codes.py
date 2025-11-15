@@ -99,7 +99,7 @@ for semester in SEMESTERS:
             f'{x["offeringUnitCode"]}:{x["subject"]}:{x["courseNumber"]} {x["title"]}' for x in courses
         ])
 
-ret = sorted(list(set(ret)))
+ret = [re.sub(r'[\-]', ' ', x) for x in ret]
 ret = [re.sub(r'["\'().,+/?@]', '', x) for x in ret]
 ret = sorted(list(set(ret)))
 

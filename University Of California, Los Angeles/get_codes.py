@@ -1,6 +1,7 @@
 import json
 import requests
 import os
+import re
 
 from bs4 import BeautifulSoup
 from time import sleep
@@ -121,6 +122,7 @@ for offset in range(0, TOTAL, PAGE_SIZE):
     print('Codes: ', codes[:5])
     print(f'Fetched {len(codes)} codes, total so far: {len(ret)}')
 
+ret = [re.sub(r'[\-]', ' ', x) for x in ret]
 ret = sorted(list(set(ret)))
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
