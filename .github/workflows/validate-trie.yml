@@ -1,6 +1,7 @@
 name: Validate all tries
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
 
@@ -20,17 +21,17 @@ jobs:
         id: schools
         shell: bash
         run: |
-          dirs=$(python3 - <<'PY'
-import os
-schools = [
-    d for d in os.listdir('.')
-    if os.path.isdir(d)
-    and not d.startswith('.')
-    and d not in ('__pycache__', 'env')
-]
-print("\n".join(sorted(schools)))
-PY
-)
+          dirs=$(python3 - <<'EOF'
+          import os
+          schools = [
+              d for d in os.listdir('.')
+              if os.path.isdir(d)
+              and not d.startswith('.')
+              and d not in ('__pycache__', 'env')
+          ]
+          print("\n".join(sorted(schools)))
+          EOF
+          )
           echo "dirs<<EOF" >> $GITHUB_OUTPUT
           printf "%s\n" "$dirs" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
