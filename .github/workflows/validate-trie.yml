@@ -17,32 +17,5 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Get all schools
-        id: schools
-        shell: bash
-        run: |
-          dirs=$(python3 - <<'EOF'
-          import os
-          schools = [
-              d for d in os.listdir('.')
-              if os.path.isdir(d)
-              and not d.startswith('.')
-              and d not in ('__pycache__', 'env')
-          ]
-          print("\n".join(sorted(schools)))
-          EOF
-          )
-          echo "dirs<<EOF" >> $GITHUB_OUTPUT
-          printf "%s\n" "$dirs" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Validate all tries
-        if: steps.schools.outputs.dirs != ''
-        shell: bash
-        run: |
-          set -euo pipefail
-          while IFS= read -r dir; do
-            [ -z "$dir" ] && continue
-            echo "Validating: $dir"
-            python3 main.py validate-trie "$dir"
-          done <<< "${{ steps.schools.outputs.dirs }}"
+        run: python3 main.py validate-all

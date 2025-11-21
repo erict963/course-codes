@@ -3,7 +3,6 @@ import gzip
 import json
 import os
 import shutil
-import pydoc
 import re
 
 with open('course_code_regex.txt', 'r', encoding='utf-8') as f:
@@ -86,17 +85,6 @@ def cleanup():
         shutil.rmtree(os.path.join(school, '__pycache__'), ignore_errors=True)
     print("Cleaned up __pycache__ directories.")
 
-def trie_to_list(school_name: str):
-    path = os.path.join(school_name, COURSE_CODES_TRIE_OUTPUT_NAME + '.gz')
-    if not os.path.exists(path):
-        print(f"No {COURSE_CODES_TRIE_OUTPUT_NAME + '.gz'} found for {school_name}. Please run/implement {COURSE_CODES_SCRIPT_NAME} and create_trie first.")
-        return
-    with gzip.open(path, 'rt', encoding='utf-8') as f:
-        trie_dict = json.load(f)
-    trie = Trie.from_dict(trie_dict)
-    codes = trie.search()
-    return codes
-
 def create_school(school_name: str):
     os.makedirs(school_name, exist_ok=True)
     with open(os.path.join(school_name, COURSE_CODES_SCRIPT_NAME), 'w') as f:
@@ -162,6 +150,28 @@ def validate_trie(school_name: str):
     trie = Trie.from_dict(trie_dict)
     codes = trie.search()
 
+    # first, ensure that COURSE_CODES_SCRIPT_OUTPUT_NAME is in sync with trie
+    output_path = os.path.join(school_name, COURSE_CODES_SCRIPT_OUTPUT_NAME)
+    if not os.path.exists(output_path):
+        print(f"No {COURSE_CODES_SCRIPT_OUTPUT_NAME} found for {school_name}. Please run/implement {COURSE_CODES_SCRIPT_NAME} first.")
+        return
+    with open(output_path, 'r', encoding='utf-8') as f:
+        codes_json = json.load(f)
+    if sorted(codes) != sorted(codes_json):
+        from collections import Counter
+        codes_counter = Counter(codes)
+        codes_json_counter = Counter(codes_json)
+        only_in_trie = [code for code in codes if codes_counter[code] > codes_json_counter[code]]
+        only_in_json = [code for code in codes_json if codes_json_counter[code] > codes_counter[code]]
+        print(f"Codes only in trie ({len(only_in_trie)}):")
+        for code in only_in_trie:
+            print(f"  {code}")
+        print(f"Codes only in JSON ({len(only_in_json)}):")
+        for code in only_in_json:
+            print(f"  {code}")
+        raise ValueError(f"Codes in {COURSE_CODES_SCRIPT_OUTPUT_NAME} do not match codes in trie for {school_name}.")
+
+    # validate course_code regex match
     non_matching = [code for code in codes if not re.match(COURSE_CODE_REGEX, code)]
     if non_matching:
         print(f"Codes not matching regex {COURSE_CODE_REGEX}:")
@@ -178,6 +188,12 @@ def validate_trie(school_name: str):
     # print([x for x in codes if '-' in x])
 
 
+def validate_all():
+    schools = list_schools()
+    for school in schools:
+        print(f"Validating trie for {school}...")
+        validate_trie(school)
+    print("All tries validated successfully.")
 # python main.py list-schools 
 # python main.py create-school "New School"
 # python main.py create-trie "New School"
@@ -199,6 +215,8 @@ def main():
     validate_trie_parser = subparsers.add_parser('validate-trie', help='Validate trie for a school.')
     validate_trie_parser.add_argument('school_name', type=str, help='Name of the school to validate trie for.')
 
+    subparsers.add_parser('validate-all', help='Validate tries for all schools.')
+
     args = parser.parse_args()
     if args.command == 'create-school':
         create_school(args.school_name)
@@ -209,13 +227,10 @@ def main():
     elif args.command == 'list-schools':
         schools = list_schools()
         print(json.dumps(schools, indent=4))
+    elif args.command == 'validate-all':
+        validate_all()
     elif args.command == 'cleanup':
         cleanup()
-    elif args.command == 'trie-to-list':
-        codes = trie_to_list(args.school_name)
-        if codes is not None:
-            output = "\n".join(codes)
-            pydoc.pager(output)
     else:
         parser.print_help()
                         
