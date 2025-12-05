@@ -204,7 +204,6 @@ def main():
 
     subparsers.add_parser('list-schools', help='List all schools with course code data.')
     subparsers.add_parser('cleanup', help='Clean up __pycache__ directories.')
-    subparsers.add_parser('trie-to-list', help='Convert trie to list for a school.').add_argument('school_name', type=str, help='Name of the school to convert trie to list for.')
 
     create_school_parser = subparsers.add_parser('create-school', help='Create a new school.')
     create_school_parser.add_argument('school_name', type=str, help='Name of the school to create.')
