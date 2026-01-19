@@ -161,7 +161,8 @@ for term, level, campus in product(TERMS, LEVELS, CAMPUS):
                 json.dump(list(ret), f, indent=4, ensure_ascii=False)
 
 ret = list(ret)
-ret = [re.sub(r'[\.]', ' ', x) for x in ret]
+ret = [re.sub(r'[\.]', '', x) for x in ret] # remove periods from codes
+ret = [re.sub(r'\s+', ' ', x) for x in ret] # sub double spaces with single space
 ret = sorted(list(set(ret)))
 
 with open(os.path.join(SCRIPT_DIR, 'codes.json'), 'w', encoding='utf-8') as f:
