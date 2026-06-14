@@ -49,7 +49,9 @@ jobs:
 
       - name: Commit if changed
         run: |
-          if git diff --quiet -- schools.json; then
+          git add schools.json
+
+          if git diff --cached --quiet; then
             echo "No changes."
             exit 0
           fi
@@ -57,6 +59,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add schools.json
-          git commit -m "chore: update schools.json"
+          git commit -m "Update schools.json"
           git push
