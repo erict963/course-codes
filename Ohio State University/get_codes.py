@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from time import sleep
 from typing import Any, Callable, Tuple, Union
 from urllib.parse import urlparse, parse_qs
+from itertools import product
 
 q = type('Quitter', (), {'__repr__': lambda self: quit()})()
 
@@ -66,17 +67,22 @@ r = s.get('https://courses.erppub.osu.edu/psc/ps/EMPLOYEE/PUB/c/COMMUNITY_ACCESS
 soup = BeautifulSoup(r.text, 'html.parser')
 courses = soup.find('div', {'id': 'win0divOSR_CAT_SRCH_WK_DESCR'}).find_all('option')
 courses = [c.get('value') for c in courses if c.get('value')]
+campuses = soup.find('div', {'id': 'win0divOSR_CAT_SRCH_WK_CAMPUS'}).find_all('option')
+campuses = [c.get('value') for c in campuses if c.get('value')]
+
 inputs = soup.find_all('input', {'type': 'hidden'})
 payload = {i.get('name'): i.get('value') for i in inputs}
 
 START = 1
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ret = []
-for i, course in enumerate(courses):
-    print(f'Processing {course} ({i+1}/{len(courses)})')
+for i, (course, campus) in enumerate(product(courses, campuses)):
+    print(f'Processing {i+1}/{len(courses)*len(campuses)}: {course} @ {campus}')
     r = s.post('https://courses.erppub.osu.edu/psc/ps/EMPLOYEE/PUB/c/COMMUNITY_ACCESS.OSR_CAT_SRCH.GBL', data={
         **payload,
         'OSR_CAT_SRCH_WK_DESCR': course,
+        'OSR_CAT_SRCH_WK_CAMPUS': campus,
+        'OSR_CAT_SRCH_WK_INSTITUTION': 'OSUSI',
         'ICAction': 'OSR_CAT_SRCH_WK_BUTTON1',
     })
 
