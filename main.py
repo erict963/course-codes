@@ -74,10 +74,11 @@ class Trie:
         return results
 
 def list_schools():
-    return [
-        x for x in os.listdir('.')
-        if os.path.isdir(x) and not x.startswith('.') and x not in ('__pycache__', 'env')
-    ]
+    return sorted(
+        x for x in os.listdir('.') 
+        # skip directories that start with '.' or '_' and common non-school directories
+        if os.path.isdir(x) and not x.startswith(('.', '_')) and x not in ('__pycache__', 'env', 'node_modules')
+    )
 
 def cleanup():
     schools = list_schools()
@@ -225,7 +226,7 @@ def main():
         validate_trie(args.school_name)
     elif args.command == 'list-schools':
         schools = list_schools()
-        print(json.dumps(schools, indent=4))
+        print(json.dumps(schools, indent=2))
     elif args.command == 'validate-all':
         validate_all()
     elif args.command == 'cleanup':

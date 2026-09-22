@@ -20,18 +20,10 @@ jobs:
         run: |
           python3 -c '
           import json
-          import os
           from pathlib import Path
+          from main import list_schools
 
-          schools = sorted(
-              p.name
-              for p in Path(".").iterdir()
-              if (
-                  p.is_dir()
-                  and not p.name.startswith(".")
-                  and p.name not in {"node_modules", "__pycache__"}
-              )
-          )
+          schools = list_schools()
 
           existing = None
           if Path("schools.json").exists():
