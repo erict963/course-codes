@@ -64,24 +64,39 @@ s.headers.update({
 })
 
 # https://catalog.ufl.edu/UGRD/courses/
+# https://gradcatalog.ufl.edu/graduate/courses-az/
+
+links = [
+    {
+        'name': 'Graduate Courses',
+        'url': 'https://gradcatalog.ufl.edu/graduate/courses-az/',
+        'course_pattern': r'^/graduate/courses-az/[a-zA-Z]+'
+    },
+    {
+        'name': 'Undergraduate Courses',
+        'url': 'https://catalog.ufl.edu/UGRD/courses/',
+        'course_pattern': r'^/UGRD/courses/[a-zA-Z]+'
+    },
+]
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-r = s.get('https://catalog.ufl.edu/UGRD/courses/')
-soup = BeautifulSoup(r.text, 'html.parser')
-hrefs = [a.get('href') for a in soup.find_all('a', href=re.compile(r'^/UGRD/courses/[a-zA-Z]+'))]
-hrefs = sorted(list(set(hrefs)))
-
 ret = []
-for i, href in enumerate(hrefs):
-    print(f'Processing {i+1}/{len(hrefs)}: {href}')
-    r = retry()(s.get)(f'https://catalog.ufl.edu{href}')
+for link in links:
+    r = s.get(link['url'])
     soup = BeautifulSoup(r.text, 'html.parser')
-    course_blocks = soup.find_all('p', class_='courseblocktitle')
-    codes = [' '.join(block.text.strip().replace('\xa0', ' ').split()[:2]) for block in course_blocks]
-    ret.extend(codes)
+    hrefs = [a.get('href') for a in soup.find_all('a', href=re.compile(link['course_pattern']))]
+    hrefs = sorted(list(set(hrefs)))
+    for i, href in enumerate(hrefs):
+        print(f'{link["name"]} {i+1}/{len(hrefs)}: {href}')
+        base = urlparse(link['url']).scheme + '://' + urlparse(link['url']).netloc
+        r = retry()(s.get)(f'{base}{href}')
+        soup = BeautifulSoup(r.text, 'html.parser')
+        course_blocks = soup.find_all('p', class_='courseblocktitle')
+        codes = [' '.join(block.text.strip().replace('\xa0', ' ').split()[:2]) for block in course_blocks]
+        ret.extend(codes)
 
-ret = sorted(list(set(ret)))
+ret = sorted(list(set(ret)))   
 
 with open(os.path.join(SCRIPT_DIR, 'codes.json'), 'w', encoding='utf-8') as f:
     json.dump(ret, f, indent=4, ensure_ascii=False)
