@@ -5,7 +5,7 @@ import re
 
 from bs4 import BeautifulSoup
 from time import sleep
-from typing import Any, Callable, Tuple, Union
+from typing import Tuple
 from urllib.parse import urlparse, parse_qs
 
 q = type('Quitter', (), {'__repr__': lambda self: quit()})()
@@ -22,40 +22,6 @@ def retry(num_retries=3, delay=1, exceptions=(Exception,)):
                 print(f'Retrying attempt {i+2}/{num_retries}')
         return wrapper
     return decorator
-
-def write(content: Any, filename: str = 'test.html'):
-    with open(filename, 'w', encoding='utf-8') as f:
-        if filename.endswith('.json'):
-            assert isinstance(content, dict)
-            f.write(json.dumps(content, indent=4, ensure_ascii=False))
-        elif filename.endswith('html'):
-            assert isinstance(content, str)
-            soup = BeautifulSoup(content, 'html.parser')
-            f.write(soup.prettify())
-        else:
-            f.write(str(content))
-
-def dfs(data: Union[dict, list], match_fn: Callable[[Any], bool]) -> Tuple[list, list]:
-    results = []
-    paths = []
-    
-    def helper(data: Any, path=None):
-        if path is None:
-            path = []
-            
-        if match_fn(data):
-            results.append(data)
-            paths.append(path[:])
-            
-        if isinstance(data, dict):
-            for key, value in data.items():
-                helper(value, path + [key])
-        elif isinstance(data, list):
-            for i, item in enumerate(data):
-                helper(item, path + [i])
-                
-    helper(data)
-    return results, paths
 
 s = requests.Session()
 s.headers.update({
